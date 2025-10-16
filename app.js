@@ -97,43 +97,36 @@ function getSystemUsername() {
 // 初始化凭证文件
 async function initializeCredentialsFile() {
     try {
-        // 检查文件是否存在
-        try {
-            await fs.access(CREDENTIALS_FILE);
-            console.log('Credentials file already exists');
-            return true;
-        } catch {
-            // 文件不存在，创建新文件
-            const initialCredentials = {
-                username: USERNAME,
-                upassword: UPASSWORD
-            };
-            
-            await fs.writeFile(
-                CREDENTIALS_FILE,
-                JSON.stringify(initialCredentials, null, 2),
-                'utf8'
-            );
-            console.log('Created new credentials file with environment variables or default admin credentials');
-            return true;
-        }
-    } catch (error) {
-        console.error('Error initializing credentials file:', error);
-        return false;
+        await fs.access(CREDENTIALS_FILE); 
+        console.log('Credentials file already exists');
+        return true;
+    } catch {
+        const initialCredentials = {
+            username: USERNAME,
+            upassword: UPASSWORD
+        };
+        
+        await fs.writeFile(
+            CREDENTIALS_FILE,
+            JSON.stringify(initialCredentials, null, 2),
+            'utf8'
+        );
+        console.log('Created new credentials file from environment variables or default');
+        return true;
     }
 }
 
 // 加载凭证
 async function loadCredentials() {
     try {
-        await initializeCredentialsFile();
+        await initializeCredentialsFile(); 
         
         const data = await fs.readFile(CREDENTIALS_FILE, 'utf8');
         return JSON.parse(data);
     } catch (error) {
         console.error('Error loading credentials:', error);
         return {
-            username: USERNAME,
+            username: USERNAME, 
             upassword: UPASSWORD
         };
     }
@@ -912,12 +905,15 @@ function replaceAddressAndPort(content) {
 // 先初始化数据再启动http服务
 async function startServer() {
     try {
-        // 初始化并加载凭证
         await ensureDataDir();
-        await initializeCredentialsFile();
-        credentials = await loadCredentials();
+        
+        // 加载并设置凭证
+        credentials = await loadCredentials(); 
         console.log('Credentials initialized and loaded successfully');
-        await initializeDataFile();
+        console.log(`API_URL is set to: ${API_URL}`); 
+        
+        await initializeDataFile(); // 初始化其他数据
+        
         // 启动服务器
         app.listen(PORT, () => {
             console.log(`Server is running on port ${PORT}`);
@@ -932,3 +928,4 @@ async function startServer() {
 }
 
 startServer();
+

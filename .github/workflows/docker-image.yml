@@ -2,11 +2,6 @@ name: Build and Push Docker Image
 
 on:
   workflow_dispatch:
-    inputs:
-      target_branch:
-        description: 'Target branch to build the Docker image from'
-        required: true
-        default: 'main'
 
 env:
   IMAGE_NAME: merge-sub
@@ -19,10 +14,10 @@ jobs:
       packages: write
 
     steps:
-      - name: "Checkout repository (Branch: ${{ github.event.inputs.target_branch }})"
+      - name: "Checkout repository (Branch: ${{ github.ref_name }})"
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.target_branch }}
+          ref: ${{ github.ref }} 
 
       - name: "Log in to GitHub Container Registry"
         uses: docker/login-action@v3
@@ -42,7 +37,6 @@ jobs:
           push: true
           platforms: linux/amd64
           tags: |
-            ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ github.event.inputs.target_branch }}-latest
-            ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ github.event.inputs.target_branch }}
+            ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max

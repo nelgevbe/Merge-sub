@@ -10,7 +10,7 @@ const basicAuth = require('basic-auth');
 const { execSync } = require('child_process');
 
 const USERNAME = process.env.USERNAME || 'admin';
-const PASSWORD = process.env.PASSWORD || 'admin';
+const UPASSWORD = process.env.UPASSWORD || 'admin';
 const API_URL = process.env.API_URL || 'https://sublink.eooce.com'; // 订阅转换地址
 const PORT = process.env.SERVER_PORT || process.env.PORT || 3000;
 const SUB_TOKEN = process.env.SUB_TOKEN || generateRandomString();
@@ -42,13 +42,13 @@ const initialData = {
 // 初始化凭证变量
 let credentials = {
     username: USERNAME,
-    password: PASSWORD
+    upassword: UPASSWORD
 };
 
 // 身份验证中间件
 const auth = async (req, res, next) => {
     const user = basicAuth(req);
-    if (!user || user.name !== credentials.username || user.pass !== credentials.password) {
+    if (!user || user.name !== credentials.username || user.pass !== credentials.upassword) {
         res.set('WWW-Authenticate', 'Basic realm="Node"');
         return res.status(401).send('认证失败');
     }
@@ -106,7 +106,7 @@ async function initializeCredentialsFile() {
             // 文件不存在，创建新文件
             const initialCredentials = {
                 username: USERNAME,
-                password: PASSWORD
+                upassword: UPASSWORD
             };
             
             await fs.writeFile(
@@ -134,7 +134,7 @@ async function loadCredentials() {
         console.error('Error loading credentials:', error);
         return {
             username: USERNAME,
-            password: PASSWORD
+            upassword: UPASSWORD
         };
     }
 }
@@ -160,7 +160,7 @@ app.post('/admin/update-credentials', auth, async (req, res) => {
     try {
         console.log('Received update request:', req.body); 
 
-        const { username, password, currentPassword } = req.body;
+        const { username, upassword, currentPassword } = req.body;
         
         // 验证请求数据是否存在
         if (!req.body || typeof req.body !== 'object') {
@@ -168,20 +168,20 @@ app.post('/admin/update-credentials', auth, async (req, res) => {
         }
 
         // 验证所有必需字段
-        if (!username || !password || !currentPassword) {
+        if (!username || !upassword || !currentPassword) {
             return res.status(400).json({ error: '所有字段都必须填写' });
         }
 
         // 验证当前密码
         const currentCredentials = await loadCredentials();
-        if (currentPassword !== currentCredentials.password) {
-            console.log('Current password verification failed');
+        if (currentPassword !== currentCredentials.upassword) {
+            console.log('Current upassword verification failed');
             return res.status(400).json({ error: '当前密码错误' });
         }
 
         const newCredentials = {
             username: username,
-            password: password
+            upassword: upassword
         };
 
         const saved = await saveCredentials(newCredentials);
@@ -923,7 +923,7 @@ async function startServer() {
             console.log(`Server is running on port ${PORT}`);
             console.log(`Subscription route is /${SUB_TOKEN}`);
             console.log(`Admin page is available at /`);
-            console.log(`Initial credentials: username=${credentials.username} password=${credentials.password}`);
+            console.log(`Initial credentials: username=${credentials.username} upassword=${credentials.upassword}`);
         });
     } catch (error) {
         console.error('Error starting server:', error);

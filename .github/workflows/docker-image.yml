@@ -1,18 +1,59 @@
-name: Docker Image CI
+name: Build and Push Docker Image (Manual Branch Select)
 
 on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+  # 移除 push 和 pull_request，仅保留手动触发
+  workflow_dispatch:
+    inputs:
+      # 定义输入参数，让用户手动选择要打包的分支
+      target_branch:
+        description: 'Target branch to build the Docker image from'
+        required: true
+        default: 'mainnel' # 默认值，方便常用分支
+
+env:
+  # 镜像的基础名称，可以根据实际情况修改
+  IMAGE_NAME: merge-sub
 
 jobs:
-
-  build:
-
+  build: # 使用您原模板中的 jobs 名称 'build'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # 必须有写入权限才能推送到 GHCR
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+      # 步骤 1: 检出用户指定的分支
+      - name: Checkout repository (Branch: ${{ github.event.inputs.target_branch }})
+        uses: actions/checkout@v4
+        with:
+          # 使用用户输入的分支参数检出代码
+          ref: ${{ github.event.inputs.target_branch }}
+
+      # 步骤 2: 登录到 GitHub Container Registry (GHCR)
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }} # 使用内置的 GITHUB_TOKEN 进行认证
+
+      # 步骤 3: 设置 Buildx，启用多平台和缓存
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 步骤 4: 构建并推送 Docker 镜像
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile # 假设 Dockerfile 在根目录
+          push: true
+          platforms: linux/amd64,linux/arm64 # 支持多平台构建
+          # 使用 github.repository_owner 自动获取用户名
+          tags: |
+            # 标签 1: ghcr.io/<owner>/merge-sub:<branch-name>-latest
+            ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ github.event.inputs.target_branch }}-latest
+            # 标签 2 (可选): ghcr.io/<owner>/merge-sub:<branch-name>
+            ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ github.event.inputs.target_branch }}
+          cache-from: type=gha # 从 Actions 缓存中拉取，加速构建
+          cache-to: type=gha,mode=max # 推送缓存
